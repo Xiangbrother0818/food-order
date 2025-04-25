@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>點餐系統</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: auto;
+      padding: 20px;
+    }
+    .hidden { display: none; }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .controls button {
+      margin: 0 5px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🍽️ 點餐系統</h2>
+
+  <div id="select-table">
+    <p>請選擇您的桌號：</p>
+    <button onclick="setTable(1)">1 號桌</button>
+    <button onclick="setTable(2)">2 號桌</button>
+    <button onclick="setTable(3)">3 號桌</button>
+  </div>
+
+  <div id="order-section" class="hidden">
+    <p id="table-number"></p>
+    <div id="menu"></div>
+    <button onclick="submitOrder()">🛒 送出訂單</button>
+  </div>
+
+  <script>
+    let table = null;
+
+    const menuItems = [
+      { name: "漢堡", price: 80, qty: 0 },
+      { name: "糖果", price: 25, qty: 0 },
+      { name: "巧克力", price: 50, qty: 0 }
+    ];
+
+    const menuDiv = document.getElementById("menu");
+
+    function setTable(num) {
+      table = num;
+      document.getElementById("select-table").classList.add("hidden");
+      document.getElementById("order-section").classList.remove("hidden");
+      document.getElementById("table-number").innerText = `桌號：${table}`;
+      updateMenu();
+    }
+
+    function updateMenu() {
+      menuDiv.innerHTML = "";
+      menuItems.forEach((item, index) => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <span>${item.name} $${item.price}</span>
+          <div class="controls">
+            <button onclick="changeQty(${index}, -1)">-</button>
+            ${item.qty}
+            <button onclick="changeQty(${index}, 1)">+</button>
+          </div>
+        `;
+        menuDiv.appendChild(div);
+      });
+    }
+
+    function changeQty(index, delta) {
+      menuItems[index].qty = Math.max(0, menuItems[index].qty + delta);
+      updateMenu();
+    }
+
+    async function submitOrder() {
+      const order = menuItems.filter(item => item.qty > 0).map(item => ({
+        item: item.name,
+        qty: item.qty
+      }));
+
+      if (!table) return alert("請選擇桌號");
+      if (order.length === 0) return alert("請選擇餐點");
+
+      const payload = {
+        table: table,
+        order: order
+      };
+
+      console.log("送出訂單：", payload);
+
+      try {
+        await fetch("http://你的ESP32-IP/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        alert("訂單已送出！");
+      } catch (e) {
+        alert("傳送失敗，請確認網路與 ESP32 是否啟動");
+      }
+    }
+  </script>
+</body>
+</html>
